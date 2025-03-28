@@ -1,223 +1,163 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-Google Maps Bicycle Shops & Location Detail Scraper
-
-This script loops through an extended list of keywords (covering many Danish and English variations
-for “cykel”, “cykler”, “bike shop”, etc.), opens Google Maps for each keyword, and extracts the following fields:
-  - Shop Name
-  - Rating (e.g., "4.8", a float with one digit after the decimal, in the range 1.0–5.9)
-  - Reviews Count (e.g., "(45)" becomes "45")
-  - Category (e.g., "Bicycle Shop")
-  - Address (with postal code)
-  - Open/Close Time (e.g., "Open ⋅ Closes 6 PM")
-  - Website (e.g., "kgshavecykler.dk")
-  - Phone Number (must start with "+45"; spaces and digits allowed)
-  - Plus Code (e.g., "MHXG+CC")
-  - Map URL and location coordinates (Latitude/Longitude extracted from URL)
-
-All results are saved in a CSV file.
-"""
-
-import csv
-import re
-import time
-import random
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
+import time
+import random
+import re
+import csv
 
-# ---------------------------
-# EXTENDED KEYWORD LIST
-# ---------------------------
-KEYWORDS = [
-    # Danish & English full phrases and common keywords
-    "Cykelbutik i Danmark", "Bicycle shop Denmark",
-    "Cykelværksted i Danmark", "Bicycle repair Denmark",
-    "Bike shop Denmark", "Cykelforhandler i Danmark", "Bicycle dealer Denmark",
-    "Cykelservice i Danmark", "Bicycle service Denmark", "Cykelreparation i Danmark",
-    "Bicycle repair shop Denmark", "Brugte cykler i Danmark", "Used bicycles Denmark",
-    "Cykeludlejning i Danmark", "Bicycle rental Denmark", "Elcykel butik Danmark",
-    "Electric bike shop Denmark", "Cykel butik nær mig", "Bicycle shop near me Denmark",
-    "Bike mechanic Denmark", "Cykel mekaniker i Danmark", "Cykel dele butik Danmark",
-    "Bicycle parts shop Denmark", "Cykel center Danmark", "Bike center Denmark",
-    "Cykelshop Danmark", "Bike workshop Denmark", "Bike service near me Denmark",
-    "Cykel værksted nær mig", "Bicycle repair near me Denmark", "Mountainbike butik Danmark",
-    "Mountain bike shop Denmark", "Racercykel butik Danmark", "Road bike shop Denmark",
-    "Cykelhandler Danmark", "Bicycle retailer Denmark", "Cykel specialist Danmark",
-    "Bicycle specialist Denmark", "Cykel butik København", "Bicycle shop Copenhagen",
-    "Cykel butik Aarhus", "Bicycle shop Aarhus", "Cykel butik Odense", "Bicycle shop Odense",
-    "Cykel butik Aalborg", "Bicycle shop Aalborg", "Cykel butik Esbjerg", "Bicycle shop Esbjerg",
-    "Cykel butik Randers", "Bicycle shop Randers", "Cykel butik nær København",
-    "Bicycle shop near Copenhagen", "Bedste cykelbutik i Danmark", "Best bicycle shop Denmark",
-    "Cykelreparation nær mig", "Bicycle repair near me", "Billige cykler i Danmark",
-    "Cheap bicycles Denmark", "Cykel forretning Danmark", "Bike store Denmark",
-    # Additional variations (short and colloquial forms)
-    "cykel", "cykler", "cykle", "cykelhandel", "cykelværksted", "cykeludlejning",
-    "cykelforretning", "cykelmekaniker", "cykelreparation", "cykelservice", "cykelcenter",
-    "cykelbutik", "cykel shop", "cykel forhandler", "cykel specialist",
-    # English short forms
-    "cycle", "cycles", "bike", "bikes", "cycle shop", "bike shop", "bicycle shop",
-    "bicycle repair", "bike repair", "cycle repair"
-]
-
-# ---------------------------
-# SELENIUM SETUP
-# ---------------------------
-chrome_options = Options()
-chrome_options.add_argument("--start-maximized")
-chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-chrome_options.add_argument("--disable-infobars")
-chrome_options.add_argument("--disable-notifications")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-driver = webdriver.Chrome(options=chrome_options)
-
-# ---------------------------
-# CSV OUTPUT SETUP
-# ---------------------------
-OUTPUT_FILE = "maps_location_data.csv"
-CSV_HEADER = [
-    "Keyword", "Shop Name", "Rating", "Reviews Count", "Category", "Address", 
-    "Open/Close Time", "Website", "Phone", "Plus Code", "Latitude", "Longitude", "Map URL"
-]
-with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(CSV_HEADER)
-
-# ---------------------------
-# HELPER FUNCTIONS
-# ---------------------------
-def random_sleep(a=2, b=5):
-    time.sleep(random.uniform(a, b))
-
-def safe_extract(xpath, method="text"):
-    """Extracts text or attribute from a given XPath; returns empty string if not found."""
+# Helper function to extract text from an element
+def get_element_text(driver, xpath):
     try:
-        element = WebDriverWait(driver, 8).until(EC.presence_of_element_located((By.XPATH, xpath)))
-        if method == "text":
-            return element.text.strip()
-        elif method.startswith("attr:"):
-            attr = method.split(":", 1)[1]
-            return element.get_attribute(attr)
-    except Exception:
+        element = driver.find_element(By.XPATH, xpath)
+        return element.text.strip()
+    except NoSuchElementException:
         return ""
 
-def extract_from_url(url, param):
-    """Extract latitude/longitude from URL if present."""
-    match = re.search(r"@([-0-9\.]+),([-0-9\.]+)", url)
-    if match:
-        return match.group(1) if param == "lat" else match.group(2)
-    return ""
-
-def extract_reviews_count(text):
-    """Extracts numeric value inside parentheses e.g. (166) -> 166."""
-    m = re.search(r"\((\d+)\)", text)
-    return m.group(1) if m else ""
-
-def extract_rating(text):
-    """
-    Extracts a rating value (1.0-5.9) with one decimal digit.
-    Matches numbers like '4.8', '1.7', etc.
-    """
-    m = re.search(r"\b([1-5]\.[0-9])\b", text)
-    return m.group(1) if m else ""
-
-def extract_dk_phone(raw_text):
-    """
-    Extracts a Denmark phone number starting with +45.
-    Expected format: +45 35 42 33 11 (spaces are optional)
-    """
-    match = re.search(r"\+45\s*(\d{2}(?:\s*\d{2}){3,4})", raw_text)
-    return f"+45 {match.group(1).strip()}" if match else raw_text.strip()
-
-def save_row(row):
-    with open(OUTPUT_FILE, "a", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(row)
-
-# ---------------------------
-# MAIN SCRAPER LOGIC
-# ---------------------------
-for keyword in KEYWORDS:
+# Helper function to extract an attribute from an element
+def get_element_attribute(driver, xpath, attribute):
     try:
-        driver.get("https://www.google.com/maps")
-        random_sleep(3, 5)
+        element = driver.find_element(By.XPATH, xpath)
+        return element.get_attribute(attribute)
+    except NoSuchElementException:
+        return ""
 
-        # Locate the search box, input the keyword, and submit
-        search_box = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "searchboxinput")))
+# List of keywords for cycle locations in Denmark (mirroring Playwright’s search approach)
+keywords = [
+    "Cykelbutik i Danmark", "Bicycle shop Denmark", "Cykelværksted i Danmark", "Bicycle repair Denmark",
+    "Cykeludlejning i Danmark", "Bicycle rental Denmark", "Elcykel butik Danmark", "Electric bike shop Denmark",
+    "Mountainbike butik Danmark", "Mountain bike shop Denmark", "Racercykel butik Danmark", "Road bike shop Denmark",
+    "Cykelhandler Danmark", "Bicycle dealer Denmark", "Cykel specialist Danmark", "Bicycle specialist Denmark",
+    "Cykel butik København", "Bicycle shop Copenhagen", "Cykel butik Aarhus", "Bicycle shop Aarhus",
+    "Cykel butik Odense", "Bicycle shop Odense", "Cykel butik Aalborg", "Bicycle shop Aalborg"
+]
+
+# Maximum listings to scrape per keyword (set to 25 as in Playwright’s main function)
+max_listings = 25
+
+# Fields to match Playwright’s extracted data
+fieldnames = [
+    "Keyword", "Name", "Type", "Plus Code", "Rating", "Address", "Website", "Phone",
+    "Reviews Count", "Latitude", "Longitude", "Map URL"
+]
+
+# Set up Chrome WebDriver with English language
+options = webdriver.ChromeOptions()
+options.add_argument('--lang=en-US')
+driver = webdriver.Chrome(options=options)
+
+# Initialize list to store all data
+data_list = []
+
+# Main scraping loop
+for keyword in keywords:
+    print(f"Processing keyword: {keyword}")
+    try:
+        # Navigate to Google Maps
+        driver.get("https://www.google.com/maps?hl=en")
+        time.sleep(3)
+
+        # Enter search keyword
+        search_box = driver.find_element(By.ID, "searchboxinput")
         search_box.clear()
         search_box.send_keys(keyword)
         search_box.send_keys(Keys.ENTER)
-        random_sleep(5, 7)
+        time.sleep(3)
 
-        # Scroll down to load results (adjust scroll count if necessary)
-        for _ in range(20):
-            driver.find_element(By.TAG_NAME, "body").send_keys(Keys.END)
-            random_sleep(2, 4)
+        # Check if results exist
+        try:
+            feed = driver.find_element(By.XPATH, '//div[@role="feed"]')
+        except NoSuchElementException:
+            print(f"No results for {keyword}")
+            continue
 
-        # Attempt to locate shop cards in the sidebar
-        shops = driver.find_elements(By.XPATH, '//div[@role="article"]')
-        print(f"[{keyword}] Found {len(shops)} shop cards")
+        # Scroll to load listings (mimics Playwright’s scrolling logic)
+        while True:
+            listings = driver.find_elements(By.XPATH, '//a[contains(@href, "https://www.google.com/maps/place")]')
+            current_listings = len(listings)
+            if current_listings >= max_listings:
+                break
 
-        if len(shops) == 0:
-            # No shop cards found; fallback to extracting main location details
-            print(f"[{keyword}] No shop cards found. Extracting main location details.")
-            shop_name = safe_extract('//h1[contains(@class,"fontHeadlineLarge")]')
-            address = safe_extract('//button[@data-item-id="address"]')
-            plus_code = safe_extract('//button[@data-item-id="oloc"]')
-            map_url = driver.current_url
-            latitude = extract_from_url(map_url, "lat")
-            longitude = extract_from_url(map_url, "lng")
-            empty = ""
-            row = [
-                keyword, shop_name, empty, empty, empty, address,
-                empty, empty, empty, plus_code, latitude, longitude, map_url
-            ]
-            save_row(row)
-        else:
-            # Iterate over each shop card and extract details
-            for shop in shops:
-                try:
-                    driver.execute_script("arguments[0].click();", shop)
-                    random_sleep(4, 6)
-                    
-                    shop_name = safe_extract('//h1[contains(@class,"fontHeadlineLarge")]')
-                    raw_rating = safe_extract('//span[contains(@class,"MW4etd")]')
-                    rating = extract_rating(raw_rating)
-                    reviews_raw = safe_extract('//button[contains(@aria-label,"reviews")]')
-                    reviews_count = extract_reviews_count(reviews_raw)
-                    category = safe_extract('//button[contains(@aria-label,"Category")]')
-                    address = safe_extract('//button[@data-item-id="address"]')
-                    open_close = safe_extract('//span[contains(text(),"Open") and contains(text(),"Closes")]')
-                    website = safe_extract('//a[@data-item-id="authority"]', method="attr:href")
-                    
-                    raw_phone = safe_extract('//button[@data-item-id="phone"]')
-                    phone = extract_dk_phone(raw_phone)
-                    
-                    plus_code = safe_extract('//button[@data-item-id="oloc"]')
-                    map_url = driver.current_url
-                    latitude = extract_from_url(map_url, "lat")
-                    longitude = extract_from_url(map_url, "lng")
+            driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", feed)
+            time.sleep(2)
 
-                    row = [
-                        keyword, shop_name, rating, reviews_count, category, address,
-                        open_close, website, phone, plus_code, latitude, longitude, map_url
-                    ]
-                    save_row(row)
-                    print(f"✅ Saved: {shop_name if shop_name else 'Unnamed Shop'}")
-                    driver.execute_script("window.history.go(-1)")
-                    random_sleep(4, 6)
-                except Exception as inner_e:
-                    print(f"❌ Error processing a shop under keyword [{keyword}]: {inner_e}")
-                    continue
+            new_listings = len(driver.find_elements(By.XPATH, '//a[contains(@href, "https://www.google.com/maps/place")]'))
+            if new_listings == current_listings:
+                if driver.find_elements(By.XPATH, '//p[@class="fontBodyMedium "]//span[text()="You\'ve reached the end of the list."]'):
+                    print(f"Reached end of list for {keyword}")
+                    break
+                elif listings:
+                    click_index = max(0, current_listings - 3)
+                    listings[click_index].click()
+                    time.sleep(2)
+                else:
+                    break
+
+        # Extract listing URLs (up to max_listings)
+        listings = driver.find_elements(By.XPATH, '//a[contains(@href, "https://www.google.com/maps/place")]')[:max_listings]
+        urls = [listing.get_attribute('href') for listing in listings]
+        print(f"Found {len(urls)} listings for {keyword}")
+
+        # Scrape details from each listing
+        for url in urls:
+            try:
+                driver.get(url)
+                time.sleep(3)
+
+                # Extract data using XPaths from Playwright code
+                name = get_element_text(driver, '//div[@style="padding-bottom: 4px;"]//h1')
+                type_ = get_element_text(driver, '//div[@class="LBgpqf"]//button[@class="DkEaL "]')
+                plus_code = get_element_text(driver, '//button[contains(@aria-label, "Plus code:")]//div[contains(@class, "Io6YTe") and contains(@class, "fontBodyMedium")]')
+                rating = get_element_text(driver, '//div[@style="padding-bottom: 4px;"]//div[contains(@jslog,"mutable:true;")]/span[1]/span[1]')
+                address = get_element_text(driver, '//button[@data-item-id="address"]//div[contains(@class, "fontBodyMedium")]')
+                website = get_element_attribute(driver, '//a[@data-value="Open website"]', 'href')
+                phone = get_element_text(driver, '//button[contains(@data-item-id, "phone:tel:")]//div[contains(@class, "fontBodyMedium")]')
+                review_raw = get_element_text(driver, '//div[@style="padding-bottom: 4px;"]//div[contains(@jslog,"mutable:true;")]/span[2]')
+                reviews_count = re.sub(r'[^\d]', '', review_raw) if review_raw else ""
+
+                # Parse coordinates from URL (mimics Playwright’s parse_coordinates)
+                match = re.search(r'@([\d.-]+),([\d.-]+)', url)
+                latitude = match.group(1) if match else ""
+                longitude = match.group(2) if match else ""
+
+                # Store data in a dictionary
+                data_dict = {
+                    "Keyword": keyword,
+                    "Name": name,
+                    "Type": type_,
+                    "Plus Code": plus_code,
+                    "Rating": rating,
+                    "Address": address,
+                    "Website": website,
+                    "Phone": phone,
+                    "Reviews Count": reviews_count,
+                    "Latitude": latitude,
+                    "Longitude": longitude,
+                    "Map URL": url
+                }
+                data_list.append(data_dict)
+                print(f"Scraped: {name}")
+
+            except Exception as e:
+                print(f"Error scraping {url}: {e}")
+
+            # Return to search results
+            driver.back()
+            time.sleep(2)
+
     except Exception as e:
-        print(f"❌ Error processing keyword [{keyword}]: {e}")
-        continue
+        print(f"Error with keyword {keyword}: {e}")
 
-print("✅ Scraping Completed.")
+# Save data to CSV
+if data_list:
+    with open('cycle_locations_denmark.csv', 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data_list)
+    print("Data saved to 'cycle_locations_denmark.csv'.")
+else:
+    print("No data scraped.")
+
+# Close the browser
 driver.quit()
