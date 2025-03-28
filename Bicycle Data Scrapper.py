@@ -2,21 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Google Maps Location Detail Scraper
+Google Maps Bicycle Shops & Location Detail Scraper
 
 This script loops through an extended list of keywords (covering many Danish and English variations
 for “cykel”, “cykler”, “bike shop”, etc.), opens Google Maps for each keyword, and extracts the following fields:
   - Shop Name
-  - Rating (e.g., "5.0")
-  - Reviews Count (e.g., "79")
+  - Rating (e.g., "4.8", a float with one digit after the decimal, in the range 1.0–5.9)
+  - Reviews Count (e.g., "(45)" becomes "45")
   - Category (e.g., "Bicycle Shop")
   - Address (with postal code)
   - Open/Close Time (e.g., "Open ⋅ Closes 6 PM")
   - Website (e.g., "kgshavecykler.dk")
-  - Phone Number (with country code, e.g., "+45 35 42 33 11")
+  - Phone Number (must start with "+45"; spaces and digits allowed)
   - Plus Code (e.g., "MHXG+CC")
   - Map URL and location coordinates (Latitude/Longitude extracted from URL)
-  
+
 All results are saved in a CSV file.
 """
 
@@ -119,6 +119,22 @@ def extract_reviews_count(text):
     m = re.search(r"\((\d+)\)", text)
     return m.group(1) if m else ""
 
+def extract_rating(text):
+    """
+    Extracts a rating value (1.0-5.9) with one decimal digit.
+    Matches numbers like '4.8', '1.7', etc.
+    """
+    m = re.search(r"\b([1-5]\.[0-9])\b", text)
+    return m.group(1) if m else ""
+
+def extract_dk_phone(raw_text):
+    """
+    Extracts a Denmark phone number starting with +45.
+    Expected format: +45 35 42 33 11 (spaces are optional)
+    """
+    match = re.search(r"\+45\s*(\d{2}(?:\s*\d{2}){3,4})", raw_text)
+    return f"+45 {match.group(1).strip()}" if match else raw_text.strip()
+
 def save_row(row):
     with open(OUTPUT_FILE, "a", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
@@ -157,7 +173,6 @@ for keyword in KEYWORDS:
             map_url = driver.current_url
             latitude = extract_from_url(map_url, "lat")
             longitude = extract_from_url(map_url, "lng")
-            # For fallback, leave other fields empty
             empty = ""
             row = [
                 keyword, shop_name, empty, empty, empty, address,
@@ -165,21 +180,25 @@ for keyword in KEYWORDS:
             ]
             save_row(row)
         else:
-            # Iterate over each shop card found and extract details
+            # Iterate over each shop card and extract details
             for shop in shops:
                 try:
                     driver.execute_script("arguments[0].click();", shop)
                     random_sleep(4, 6)
-
+                    
                     shop_name = safe_extract('//h1[contains(@class,"fontHeadlineLarge")]')
-                    rating = safe_extract('//span[contains(@class,"MW4etd")]')
+                    raw_rating = safe_extract('//span[contains(@class,"MW4etd")]')
+                    rating = extract_rating(raw_rating)
                     reviews_raw = safe_extract('//button[contains(@aria-label,"reviews")]')
                     reviews_count = extract_reviews_count(reviews_raw)
                     category = safe_extract('//button[contains(@aria-label,"Category")]')
                     address = safe_extract('//button[@data-item-id="address"]')
                     open_close = safe_extract('//span[contains(text(),"Open") and contains(text(),"Closes")]')
                     website = safe_extract('//a[@data-item-id="authority"]', method="attr:href")
-                    phone = safe_extract('//button[@data-item-id="phone"]')
+                    
+                    raw_phone = safe_extract('//button[@data-item-id="phone"]')
+                    phone = extract_dk_phone(raw_phone)
+                    
                     plus_code = safe_extract('//button[@data-item-id="oloc"]')
                     map_url = driver.current_url
                     latitude = extract_from_url(map_url, "lat")
