@@ -1,0 +1,40 @@
+Category,Subcategory,Short Distance (1–5 km) - OR,Short Distance (1–5 km) - 95% CI,Short Distance (1–5 km) - Significance
+Age (REF 15–29 years),30–44 years,0.844,0.760–0.938,**
+Age (REF 15–29 years),45–59 years,0.772,0.697–0.855,***
+Age (REF 15–29 years),60+ years,0.828,0.732–0.937,**
+Sex (REF Men),Woman,1.161,1.096–1.231,***
+Education (REF Primary),Upper secondary or vocational,0.933,0.857–1.017,
+Education (REF Primary),Higher,1.307,1.189–1.436,***
+Employment (REF Students),Working,0.935,0.849–1.030,
+Employment (REF Students),Self-employed,0.392,0.333–0.461,***
+Living with child (REF No),Yes,1.152,1.067–1.244,***
+Ethnicity (REF Danish),Western Immigrant,0.857,0.741–0.991,*
+Ethnicity (REF Danish),Non-western Immigrant,0.802,0.684–0.942,**
+Ethnicity (REF Danish),Western Descendant,0.99,0.574–1.710,
+Ethnicity (REF Danish),Non-western Descendant,0.606,0.487–0.754,***
+Municipality type (REF Capital Municipality),Metropolitan,0.666,0.612–0.723,***
+Municipality type (REF Capital Municipality),Provincial,0.444,0.410–0.481,***
+Municipality type (REF Capital Municipality),Suburban,0.419,0.377–0.467,***
+Municipality type (REF Capital Municipality),Rural,0.412,0.377–0.449,***
+Access to bike (REF No),Yes,45.99,37.252–56.779,***
+Access to car (REF No),Yes,0.487,0.453–0.525,***
+Barriers - Safety,I feel unsafe on the road,0.672,0.587–0.771,***
+Barriers - Safety,I am worried about getting hurt,0.888,0.712–1.108,
+Barriers - Time,I often run errands on the road or have others with me,0.411,0.375–0.451,***
+Barriers - Time,I prioritize time on my work or with my family,0.5,0.455–0.550,***
+Barriers - Time,It takes too long/the distances are too great,1.054,0.987–1.126,
+Barriers - Physical appearance,"I feel embarrassed when I walk, cycle or run",1.052,0.830–1.333,***
+Barriers - Physical appearance,I don't like being hot and sweaty,0.778,0.711–0.851,***
+Barriers - Physical appearance,"I don't feel presentable after walking, cycling or running",0.726,0.659–0.799,***
+Barriers - Social,I lack someone to do it together with,0.874,0.751–1.018,
+Barriers - Social,Others in my social circle do not encourage me,1.452,1.084–1.945,*
+Barriers - Capability,I am often too exhausted or tired,0.788,0.722–0.860,***
+Barriers - Capability,I lack the necessary skills,0.868,0.630–1.196,
+Barriers - Capability,I lack or have poor equipment,0.492,0.430–0.564,***
+Barriers - Capability,I have a disability or chronic illness,0.52,0.430–0.628,***
+Barriers - Capability,I am less fit,0.64,0.572–0.717,***
+Barriers - Capability,I am injured,1.133,1.003–1.280,***
+Barriers - Other,"I am not interested in transporting myself (more) by walking, cycling or running",1.204,1.103–1.313,***
+Barriers - Other,I like driving a car,0.434,0.400–0.472,***
+Barriers - Other,The weather is often bad,1.278,1.196–1.365,***
+Sample Size,N,23118.0,,

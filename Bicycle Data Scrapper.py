@@ -78,7 +78,7 @@ for keyword in base_keywords:
         locations.append(f"{keyword} {loc}")
 
 # Maximum listings per keyword
-max_listings = 25
+max_listings =100
 
 # ---------------------------
 # Selenium Setup
