@@ -142,5 +142,3 @@ For any questions or support, feel free to contact:
 - **GitHub:** [Waqas56jb](https://github.com/Waqas56jb)
 
 Happy Scraping! 🚴‍♂️
-```
- 
