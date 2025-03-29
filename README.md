@@ -1,149 +1,146 @@
-Denmark Bicycle Shops Google Maps Scraper
-This project uses Selenium to automatically scrape Google Maps for Denmark bicycle shop information. It covers multiple Danish and English search keywords and location combinations so that you capture as many cycle shop listings as possible. The scraper visits each shop detail page, extracts key information, and saves it into a CSV file.
+# Denmark Bicycle Shops Google Maps Scraper
 
-Table of Contents
-Features
+This project is a Python-based web scraper that uses Selenium to collect data about bicycle shops across Denmark from Google Maps. The scraper leverages an extensive list of keywords—including Danish and English variations with different accents—to ensure maximum coverage. The extracted data includes key details like shop name, address, phone number, rating, reviews count, plus code, and geographic coordinates.
 
-Prerequisites
+## Table of Contents
 
-Installation
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+- [Notes](#notes)
+- [License](#license)
+- [Contact](#contact)
 
-Usage
+## Features
 
-Project Structure
+- **Extensive Keyword Coverage:**  
+  Combines multiple Danish and English keywords to capture every possible cycle shop in Denmark.
+  
+- **Data Extraction:**  
+  Scrapes the following details from Google Maps:
+  - **Shop Name**
+  - **Address** (including postal code)
+  - **Open/Close Time**
+  - **Phone Number** (standardized for Denmark; starts with `+45`)
+  - **Plus Code**
+  - **Rating** (one decimal digit between 1.0 and 5.9)
+  - **Reviews Count**
+  - **Latitude & Longitude** (extracted from the URL)
+  - **Map URL**
 
-Configuration
+- **Lazy Loading & Random Delays:**  
+  Mimics human browsing by applying random sleep intervals and scrolling behavior to ensure maximum data capture without triggering Google’s anti-scraping measures.
 
-Notes
+- **CSV Output:**  
+  All extracted data is saved in a well-structured CSV file for easy analysis.
 
-License
+## Prerequisites
 
-Features
-Multi-language & Extensive Keywords:
-Searches using a comprehensive list of Danish and English keywords, including variations for “cykelbutik”, “bicycle shop”, “cykelværksted”, “bike repair”, and more.
+Before running this project, ensure you have the following:
 
-Dynamic Data Extraction:
-Visits each shop’s Google Maps detail page and extracts the following fields:
+- **Python 3.8+**  
+  [Download Python](https://www.python.org/downloads/)
 
-Name: The shop/business name.
+- **Google Chrome Browser** installed.
 
-Address: Full address including postal code.
+- **ChromeDriver:**  
+  Download the ChromeDriver that matches your version of Chrome from [ChromeDriver Downloads](https://chromedriver.chromium.org/downloads) and either place it in your project directory or add it to your system PATH.
 
-Open/Close Time: Operating status and hours.
+- **Python Dependencies:**  
+  Install the required Python package by running:
+  
+  ```bash
+  pip install -r requirements.txt
+  ```
+  
+  *The `requirements.txt` file includes:*
+  
+  ```txt
+  selenium>=4.10.0
+  ```
 
-Phone: Denmark phone number (formatted to start with +45).
+## Installation
 
-Plus Code: Unique location identifier (if available).
+1. **Clone the Repository:**
 
-Rating: Business rating (e.g., "4.8", one decimal digit).
+   ```bash
+   git clone https://github.com/Waqas56jb/Denmark-Bicycles-Google-Map-DataScrapping-Using-Seleinum-.git
+   cd Denmark-Bicycles-Google-Map-DataScrapping-Using-Seleinum-
+   ```
 
-Reviews Count: Number of reviews (extracted from text like "(45)").
+2. **Install Dependencies:**
 
-Latitude/Longitude: Extracted from the URL.
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Map URL: The detail page URL.
+3. **Set Up ChromeDriver:**  
+   Ensure that `chromedriver.exe` is available in your project directory or added to your PATH.
 
-CSV Output:
-All extracted data is saved into a CSV file for easy analysis.
+## Usage
 
-Lazy Loading & Random Delays:
-Uses randomized sleep intervals and scrolling to load dynamic content and avoid detection by Google.
+1. **Customize Keywords (Optional):**  
+   The scraper uses an extensive list of keywords defined in the script. You can modify the keyword list to add more variations if needed.
 
-Prerequisites
-Before you begin, please ensure you have the following:
+2. **Run the Script:**
 
-Python 3.8+
-Download Python
+   ```bash
+   python main.py
+   ```
 
-Google Chrome Browser installed.
+   The script will:
+   - Open Google Maps.
+   - Search for each keyword (e.g., "Cykelbutik i Danmark", "Bicycle shop Denmark", etc.).
+   - Scroll through the listings to load results.
+   - Visit each shop’s detail page.
+   - Extract relevant information.
+   - Save all data into a CSV file named `denmark_bicycle_shops.csv`.
 
-ChromeDriver:
-Download the ChromeDriver that matches your Chrome version from ChromeDriver Downloads and either place it in your project folder or add it to your system PATH.
+## Project Structure
 
-Python Packages:
-You need the Selenium package. Install it via pip:
+```
+.
+├── main.py                  # Main scraping script
+├── requirements.txt         # Python dependencies
+├── output/                  # Directory where CSV files are saved (created automatically)
+└── README.md                # Project documentation (this file)
+```
 
- 
-pip install selenium
-Installation
-Clone the repository:
+## Configuration
 
- 
-git clone https://github.com/Waqas56jb/Denmark-Bicycles-Google-Map-DataScrapping-Using-Seleinum-.git
-cd Denmark-Bicycles-Google-Map-DataScrapping-Using-Seleinum-
-Install Dependencies:
+- **Keywords:**  
+  The keyword list is built by combining base keywords and a list of Danish cities/towns. You can extend these lists to improve data coverage.
 
-Create a requirements.txt file (if not already provided) with at least:
+- **Max Listings:**  
+  The variable `max_listings` determines how many shops are scraped per keyword. You can adjust this value as needed.
 
- 
-selenium>=4.0.0
-And install the dependencies:
+- **Delays:**  
+  Random sleep intervals are used throughout the script to mimic human behavior and avoid detection by Google.
 
- 
-pip install -r requirements.txt
-Set Up ChromeDriver:
-Ensure your ChromeDriver is in your project directory or added to the PATH.
+## Notes
 
-Usage
-Customize Keyword Lists (Optional):
+- **Data Limitations:**  
+  Some information (e.g., email addresses or social media links) is not available on Google Maps and will be left blank.
+  
+- **Dynamic Content:**  
+  Google Maps’ layout may change over time. If extraction fails, inspect the page with developer tools and update the XPath selectors accordingly.
 
-The keywords are defined in main.py as two lists:
+- **Ethical Considerations:**  
+  Please ensure that your scraping activities comply with Google’s Terms of Service and local regulations. Use the data responsibly.
 
-base_keywords: Generic Danish and English terms.
+## License
 
-danish_locations: A list of over 200 Danish cities and towns.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-The script automatically combines these lists to generate an extensive set of search queries.
+## Contact
 
-Run the Scraper:
-
-Run the main script:
- 
-python main.py
-The scraper will:
-
-Open Google Maps.
-
-Loop through every combined search query.
-
-Scroll the results panel to load shop listings.
-
-Click each listing to extract detailed information.
-
-Save all data into a CSV file named denmark_bicycle_shops.csv.
-
-Project Structure
- 
-├── main.py               # Main scraping script
-├── README.md             # Project documentation (this file)
-├── requirements.txt      # Python dependencies (e.g., selenium)
-└── csv file              # Directory where CSV files are saved (created automatically)
-Configuration
-Keywords:
-The keyword generation is done by combining base_keywords and danish_locations. You can edit these lists in main.py to add more variations or cover additional regions.
-
-Max Listings:
-The variable max_listings controls how many shops to scrape per search query. Adjust this number as needed.
-
-Random Delays:
-Random sleep intervals are used throughout the script to mimic human behavior and reduce the chance of being blocked by Google.
-
-Notes
-Data Limitations:
-Some information (such as email addresses and social media links) is not provided by Google Maps and will be left blank.
-
-Dynamic Content:
-Google Maps uses dynamic loading. If you notice missing data, you may need to increase the sleep duration or adjust the scrolling loops.
-
-Future Extensions:
-You can extend the code to automatically handle pagination (scrolling beyond the initial results) or integrate more detailed parsing if Google changes its DOM structure.
-
-Disclaimer:
-Scraping data from Google Maps may violate their Terms of Service. Use this tool responsibly and only for permitted purposes.
-
-License
-This project is provided under the MIT License.
-
-If you have any questions or need further customization, feel free to open an issue or contact me at waqas56jb@gmail.com.
+For any questions or support, feel free to contact:
+- **Email:** waqas56jb@gmail.com
+- **GitHub:** [Waqas56jb](https://github.com/Waqas56jb)
 
 Happy Scraping! 🚴‍♂️
+```
+ 
